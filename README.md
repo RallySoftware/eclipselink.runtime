@@ -5,3 +5,13 @@ The EclipseLink project's goal is to provide a complete persistence framework th
 
 
 http://eclipse.org/eclipselink
+
+
+Opening the Project in IntelliJ
+========================================
+There are a lot of sub-projects in this repository.  To make changes to the core EclipseLink code in IntelliJ follow these instructions:
+
+1. Close any current projects
+2. On the main menu select 'Import Project'
+3. Choose 'eclipselink.runtime/foundation/org.eclipse.persistence.core/pom.xml'
+4. Let IntelliJ do its magic and accept all the defaults
