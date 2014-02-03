@@ -1073,6 +1073,9 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
             }
         }
         if (!cacheHit) {
+            if (session.isInProfile()) {
+                session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheMiss, query);
+            }
             concreteObjectBuilder.instantiateEagerMappings(domainObject, session);
             if (shouldMaintainCache && (cacheKey != null)) {
                 if (hasSopObject || (isSopQuery && this.hasCacheIndexesInSopObject)) {
@@ -1087,6 +1090,10 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
             LoadGroup group = ((ObjectLevelReadQuery)query).getLoadGroup();
             if (group != null) {
                 session.load(domainObject, group, query.getDescriptor(), false);
+            }
+        } else {
+            if (session.isInProfile()) {
+                session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheHit, query);
             }
         }
         
@@ -2168,6 +2175,9 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                     originalCacheKey.acquireLock(query);
                 }
                 if (originalCacheKey != null) {
+                    if (session.isInProfile()) {
+                        session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheHit, query);
+                    }
                     // PERF: Read-lock is not required on object as unit of work will acquire this on clone and object cannot gc and object identity is maintained.
                     original = originalCacheKey.getObject();
                     wasAnOriginal = original != null;
@@ -2180,6 +2190,10 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                             // or using protected isolation and isolated client sessions
                             return unitOfWork.cloneAndRegisterObject(original, originalCacheKey, unitOfWorkCacheKey, descriptor);
                         }
+                    }
+                } else {
+                    if (session.isInProfile()) {
+                        session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheMiss, query);
                     }
                 }
             }
