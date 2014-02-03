@@ -863,9 +863,16 @@ public class ObjectBuilder implements Cloneable, Serializable {
             }
         }
         if (!cacheHit) {
+            if (session.isInProfile()) {
+                session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheMiss, query);
+            }
             concreteDescriptor.getObjectBuilder().instantiateEagerMappings(domainObject, session);
             if (query.shouldMaintainCache() && (cacheKey != null)) {
                 concreteDescriptor.getCachePolicy().indexObjectInCache(cacheKey, databaseRow, domainObject, concreteDescriptor, session, !domainWasMissing);
+            }
+        } else {
+            if (session.isInProfile()) {
+                session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheHit, query);
             }
         }
         
@@ -1665,6 +1672,9 @@ public class ObjectBuilder implements Cloneable, Serializable {
                 AbstractSession session = unitOfWork.getParentIdentityMapSession(query);            
                 originalCacheKey = session.getIdentityMapAccessorInstance().getCacheKeyForObject(primaryKey, descriptor.getJavaClass(), descriptor, false);
                 if (originalCacheKey != null) {
+                    if (session.isInProfile()) {
+                        session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheHit, query);
+                    }
                     // PERF: Read-lock is not required on object as unit of work will acquire this on clone and object cannot gc and object identity is maintained.
                     original = originalCacheKey.getObject();
                     wasAnOriginal = original != null;
@@ -1677,6 +1687,10 @@ public class ObjectBuilder implements Cloneable, Serializable {
                             // or using protected isolation and isolated client sessions
                             return unitOfWork.cloneAndRegisterObject(original, originalCacheKey, unitOfWorkCacheKey, descriptor);
                         }
+                    }
+                } else {
+                    if (session.isInProfile()) {
+                        session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheMiss, query);
                     }
                 }
             }
