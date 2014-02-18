@@ -863,11 +863,11 @@ public class ObjectBuilder implements Cloneable, Serializable {
             }
         }
         if (!cacheHit) {
-            if (session.isInProfile()) {
+            if (session.isInProfile() && query.shouldMaintainCache()) {
                 session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheMiss, query);
             }
             concreteDescriptor.getObjectBuilder().instantiateEagerMappings(domainObject, session);
-            if (query.shouldMaintainCache() && (cacheKey != null)) {
+            if (query.shouldMaintainCache() && (cacheKey != null) && query.shouldMaintainCache()) {
                 concreteDescriptor.getCachePolicy().indexObjectInCache(cacheKey, databaseRow, domainObject, concreteDescriptor, session, !domainWasMissing);
             }
         } else {
@@ -1672,7 +1672,7 @@ public class ObjectBuilder implements Cloneable, Serializable {
                 AbstractSession session = unitOfWork.getParentIdentityMapSession(query);            
                 originalCacheKey = session.getIdentityMapAccessorInstance().getCacheKeyForObject(primaryKey, descriptor.getJavaClass(), descriptor, false);
                 if (originalCacheKey != null) {
-                    if (session.isInProfile()) {
+                    if (session.isInProfile() && query.shouldMaintainCache()) {
                         session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheHit, query);
                     }
                     // PERF: Read-lock is not required on object as unit of work will acquire this on clone and object cannot gc and object identity is maintained.
@@ -1689,7 +1689,7 @@ public class ObjectBuilder implements Cloneable, Serializable {
                         }
                     }
                 } else {
-                    if (session.isInProfile()) {
+                    if (session.isInProfile() && query.shouldMaintainCache()) {
                         session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheMiss, query);
                     }
                 }
