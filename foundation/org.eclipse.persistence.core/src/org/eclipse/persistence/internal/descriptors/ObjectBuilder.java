@@ -4302,6 +4302,10 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                     }
                     if (!refreshRequired) {
                         cacheKey.setReadTime(query.getExecutionTime());
+                    } else {
+                        if (session.isInProfile()) {
+                            session.getProfiler().occurred(SessionProfiler.ObjectBuildingDatabaseRowIsNewer, query);
+                        }
                     }
                 }
                 if (refreshRequired) {

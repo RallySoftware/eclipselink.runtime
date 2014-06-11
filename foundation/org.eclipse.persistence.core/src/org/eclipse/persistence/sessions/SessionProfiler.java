@@ -52,6 +52,7 @@ public interface SessionProfiler {
     public static final String ChangeSetsNotProcessed = "Counter:ChangesNotProcessed";
     public static final String ObjectBuildingCacheHit = "Counter:ObjectBuildingCacheHit";
     public static final String ObjectBuildingCacheMiss = "Counter:ObjectBuildingCacheMiss";
+    public static final String ObjectBuildingDatabaseRowIsNewer = "Counter:ObjectBuildingDatabaseRowIsNewer";
 
     public static final String DescriptorEvent = "Timer:DescriptorEvents";
     public static final String SessionEvent = "Timer:SessionEvents";
