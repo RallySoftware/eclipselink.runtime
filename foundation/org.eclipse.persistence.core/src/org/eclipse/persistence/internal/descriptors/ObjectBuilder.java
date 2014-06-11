@@ -3666,6 +3666,10 @@ public class ObjectBuilder implements Cloneable, Serializable {
                     refreshRequired = policy.isNewerVersion(databaseRow, domainObject, cacheKey.getKey(), session);
                     if (!refreshRequired) {
                         cacheKey.setReadTime(query.getExecutionTime());
+                    } else {
+                        if (session.isInProfile()) {
+                            session.getProfiler().occurred(SessionProfiler.ObjectBuildingDatabaseRowIsNewer, query);
+                        }
                     }
                 }
                 if (refreshRequired) {
