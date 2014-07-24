@@ -1087,17 +1087,18 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                     concreteDescriptor.getCachePolicy().indexObjectInCache(cacheKey, databaseRow, domainObject, concreteDescriptor, session, !domainWasMissing);
                 }
             }
-        }
-        if (query instanceof ObjectLevelReadQuery) {
-            LoadGroup group = ((ObjectLevelReadQuery)query).getLoadGroup();
-            if (group != null) {
-                session.load(domainObject, group, query.getDescriptor(), false);
-            }
         } else {
             if (session.isInProfile() && shouldMaintainCache) {
                 session.getProfiler().occurred(SessionProfiler.ObjectBuildingCacheHit, session);
             }
         }
+        
+        if (query instanceof ObjectLevelReadQuery) {
+            LoadGroup group = ((ObjectLevelReadQuery)query).getLoadGroup();
+            if (group != null) {
+                session.load(domainObject, group, query.getDescriptor(), false);
+            }
+        } 
         
         if (returnCacheKey) {
             return cacheKey;
