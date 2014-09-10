@@ -13,8 +13,6 @@
 package org.eclipse.persistence.internal.identitymaps;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.eclipse.persistence.descriptors.ClassDescriptor;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 
@@ -33,7 +31,7 @@ public class UnitOfWorkIdentityMap extends FullIdentityMap {
         super();
         this.maxSize = size;
         // PERF: Use a HashMap as more efficient than a ConcurrentMap and single threaded.
-        this.cacheKeys = new ConcurrentHashMap(size);
+        this.cacheKeys = new HashMap(size);
         this.descriptor = descriptor;
         this.session = session;
         this.isIsolated = isolated;
