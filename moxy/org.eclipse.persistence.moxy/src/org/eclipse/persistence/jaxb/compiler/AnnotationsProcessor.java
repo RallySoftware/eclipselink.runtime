@@ -1,8 +1,8 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2013 Oracle and/or its affiliates. All rights reserved.
- * This program and the accompanying materials are made available under the 
- * terms of the Eclipse Public License v1.0 and Eclipse Distribution License v. 1.0 
- * which accompanies this distribution. 
+ * Copyright (c) 1998, 2014 Oracle and/or its affiliates. All rights reserved.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 and Eclipse Distribution License v. 1.0
+ * which accompanies this distribution.
  * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at 
  * http://www.eclipse.org/org/documents/edl-v10.php.
@@ -528,7 +528,6 @@ public class AnnotationsProcessor {
     public Map<String, TypeInfo> preBuildTypeInfo(JavaClass[] javaClasses) {
         for (JavaClass javaClass : javaClasses) {
             String qualifiedName = javaClass.getQualifiedName();
-
             TypeInfo info = typeInfo.get(qualifiedName);
             if (javaClass == null || javaClass.isArray()|| (info!=null && info.isPreBuilt()) || !shouldGenerateTypeInfo(javaClass) || isXmlRegistry(javaClass) ) {
                 continue;
@@ -949,8 +948,7 @@ public class AnnotationsProcessor {
                 if (property.isAttribute()) {
                     validateXmlAttributeFieldOrProperty(tInfo, property);
                 }
-
-                JavaClass typeClass = property.getActualType();
+            	JavaClass typeClass = property.getActualType();
             
             	if(property.isChoice()){
             		Collection<Property> choiceProps = property.getChoiceProperties();
@@ -1301,7 +1299,7 @@ public class AnnotationsProcessor {
      * @param classesToProcess
      */
     private void processClass(JavaClass javaClass, ArrayList<JavaClass> classesToProcess) {
-        if (shouldGenerateTypeInfo(javaClass) ){
+        if (shouldGenerateTypeInfo(javaClass)) {
             if (isXmlRegistry(javaClass)) {
                 this.processObjectFactory(javaClass, classesToProcess);
             } else {
@@ -1815,7 +1813,7 @@ public class AnnotationsProcessor {
                 return true;
             }
         }
-        if (helper.isBuiltInJavaType(javaClass)) {
+        if (helper.isBuiltInJavaType(javaClass) && !javaClass.isEnum()) {
             return false;
         }
         if (helper.isCollectionType(javaClass) || helper.isMapType(javaClass)) {
@@ -1974,7 +1972,7 @@ public class AnnotationsProcessor {
         // if there is a TypeInfo for ptype check it for transient, otherwise
         // check the class        
         if (helper.isCollectionType(ptype)) {
-            JavaClass componentType = helper.getJavaClass(Object.class);;
+            JavaClass componentType = helper.getJavaClass(Object.class);
             
             Collection typeArgs =  ptype.getActualTypeArguments();
             if(typeArgs.size() > 0) {
@@ -3963,7 +3961,7 @@ public class AnnotationsProcessor {
     }
 
     private boolean hasElementMappedProperties(TypeInfo typeInfo) {
-        for (Property property : typeInfo.getPropertyList()) {
+        for(Property property : typeInfo.getPropertyList()) {
             if(!(property.isTransient()|| property.isAttribute() || property.isAnyAttribute())) {
                 return true;
             }
@@ -4135,7 +4133,7 @@ public class AnnotationsProcessor {
         
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/eclipse/persistence/internal/jaxb/many/MapValue", "<init>", "()V");
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/eclipse/persistence/internal/jaxb/many/MapValue", "<init>", "()V", false);
         mv.visitInsn(Opcodes.RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
@@ -4174,7 +4172,7 @@ public class AnnotationsProcessor {
 
         mv = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_BRIDGE + Opcodes.ACC_SYNTHETIC, "getItem", "()Ljava/lang/Object;", null, null);
         mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "getItem", "()L" + mapType.getInternalName() + SEMI_COLON);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "getItem", "()L" + mapType.getInternalName() + SEMI_COLON, false);
         mv.visitInsn(Opcodes.ARETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
@@ -4183,7 +4181,7 @@ public class AnnotationsProcessor {
         mv.visitVarInsn(Opcodes.ALOAD, 0);
         mv.visitVarInsn(Opcodes.ALOAD, 1);
         mv.visitTypeInsn(Opcodes.CHECKCAST, mapType.getInternalName());
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "setItem", "(L" + mapType.getInternalName() + ";)V");
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "setItem", "(L" + mapType.getInternalName() + ";)V", false);
         mv.visitInsn(Opcodes.RETURN);
         mv.visitMaxs(2, 2);
         mv.visitEnd();
@@ -4414,7 +4412,7 @@ public class AnnotationsProcessor {
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
         mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(superType), "<init>", "()V");
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(superType), "<init>", "()V", false);
         mv.visitInsn(Opcodes.RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
@@ -4440,18 +4438,18 @@ public class AnnotationsProcessor {
         	mv.visitInsn(Opcodes.ACONST_NULL);
         	mv.visitInsn(Opcodes.ARETURN);
         	mv.visitLabel(l0);
-        	mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-        	mv.visitVarInsn(Opcodes.ALOAD, 0);
-        	mv.visitFieldInsn(Opcodes.GETFIELD, classNameSeparatedBySlash, "adaptedValue", "Ljava/util/Collection;");
-        	mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Collection", "size", "()I");
-        	mv.visitVarInsn(Opcodes.ISTORE, 1);
-        	mv.visitVarInsn(Opcodes.ILOAD, 1);
-        	mv.visitTypeInsn(Opcodes.ANEWARRAY, componentClassNameSeparatedBySlash);
+		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+		mv.visitVarInsn(Opcodes.ALOAD, 0);
+		mv.visitFieldInsn(Opcodes.GETFIELD, classNameSeparatedBySlash, "adaptedValue", "Ljava/util/Collection;");
+		mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Collection", "size", "()I", true);
+		mv.visitVarInsn(Opcodes.ISTORE, 1);
+		mv.visitVarInsn(Opcodes.ILOAD, 1);
+		mv.visitTypeInsn(Opcodes.ANEWARRAY, componentClassNameSeparatedBySlash);
         	mv.visitVarInsn(Opcodes.ASTORE, 2);
         	mv.visitVarInsn(Opcodes.ALOAD, 0);
         	mv.visitFieldInsn(Opcodes.GETFIELD, classNameSeparatedBySlash, "adaptedValue", "Ljava/util/Collection;");
         	mv.visitVarInsn(Opcodes.ALOAD, 2);
-        	mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Collection", "toArray", "([Ljava/lang/Object;)[Ljava/lang/Object;");
+        	mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/Collection", "toArray", "([Ljava/lang/Object;)[Ljava/lang/Object;", true);
         	mv.visitInsn(Opcodes.POP);        	
         	
         	mv.visitVarInsn(Opcodes.ALOAD, 2);
@@ -4472,7 +4470,7 @@ public class AnnotationsProcessor {
         	mv.visitVarInsn(Opcodes.ASTORE, 2);
         	mv.visitVarInsn(Opcodes.ALOAD, 0);
         	mv.visitVarInsn(Opcodes.ALOAD, 2);
-        	mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/util/Arrays", "asList", "([Ljava/lang/Object;)Ljava/util/List;");
+        	mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/util/Arrays", "asList", "([Ljava/lang/Object;)Ljava/util/List;", false);
         	mv.visitFieldInsn(Opcodes.PUTFIELD, classNameSeparatedBySlash, "adaptedValue", "Ljava/util/Collection;");
         	mv.visitInsn(Opcodes.RETURN);
         	mv.visitMaxs(2, 3);
@@ -4535,7 +4533,7 @@ public class AnnotationsProcessor {
 
         mv.visitCode();
         mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(superType), "getAdaptedValue", "()Ljava/util/Collection;");
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(superType), "getAdaptedValue", "()Ljava/util/Collection;", false);
         mv.visitInsn(Opcodes.ARETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
@@ -4547,7 +4545,7 @@ public class AnnotationsProcessor {
         mv.visitCode();
         mv.visitVarInsn(Opcodes.ALOAD, 0);
         mv.visitVarInsn(Opcodes.ALOAD, 1);
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(superType), "setAdaptedValue", "(Ljava/util/Collection;)V");
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(superType), "setAdaptedValue", "(Ljava/util/Collection;)V", false);
         mv.visitInsn(Opcodes.RETURN);
         mv.visitMaxs(2, 2);
         mv.visitEnd();
@@ -4598,12 +4596,13 @@ public class AnnotationsProcessor {
         return generatedClass;
     }
 
+    // Made static final for performance reasons.
     /**
      * Inner class used for ordering a list of Properties alphabetically by
      * property name.
-     * 
+     *
      */
-    class PropertyComparitor implements Comparator<Property> {
+    private static final class PropertyComparitor implements Comparator<Property> {
         public int compare(Property p1, Property p2) {
             return p1.getPropertyName().compareTo(p2.getPropertyName());
         }
