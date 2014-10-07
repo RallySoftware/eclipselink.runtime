@@ -1,6 +1,6 @@
 /***
  * ASM XML Adapter
- * Copyright (c) 2004-2011, Eugene Kuleshov
+ * Copyright (c) 2004, Eugene Kuleshov
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ import org.eclipse.persistence.internal.libraries.asm.ClassVisitor;
 import org.eclipse.persistence.internal.libraries.asm.FieldVisitor;
 import org.eclipse.persistence.internal.libraries.asm.MethodVisitor;
 import org.eclipse.persistence.internal.libraries.asm.Opcodes;
-import org.eclipse.persistence.internal.libraries.asm.TypePath;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -49,10 +48,7 @@ import org.xml.sax.helpers.AttributesImpl;
  * 
  * @author Eugene Kuleshov
  */
-public final class SAXClassAdapter extends ClassVisitor {
-
-    SAXAdapter sa;
-
+public final class SAXClassAdapter extends SAXAdapter implements ClassVisitor {
     private final boolean singleDocument;
 
     /**
@@ -73,23 +69,19 @@ public final class SAXClassAdapter extends ClassVisitor {
     /**
      * Constructs a new {@link SAXClassAdapter SAXClassAdapter} object.
      * 
-     * @param h
-     *            content handler that will be used to send SAX 2.0 events.
-     * @param singleDocument
-     *            if <tt>true</tt> adapter will not produce
-     *            {@link ContentHandler#startDocument() startDocument()} and
-     *            {@link ContentHandler#endDocument() endDocument()} events.
+     * @param h content handler that will be used to send SAX 2.0 events.
+     * @param singleDocument if <tt>true</tt> adapter will not produce
+     *        {@link ContentHandler#startDocument() startDocument()} and
+     *        {@link ContentHandler#endDocument() endDocument()} events.
      */
     public SAXClassAdapter(final ContentHandler h, boolean singleDocument) {
-        super(Opcodes.ASM5);
-        this.sa = new SAXAdapter(h);
+        super(h);
         this.singleDocument = singleDocument;
         if (!singleDocument) {
-            sa.addDocumentStart();
+            addDocumentStart();
         }
     }
 
-    @Override
     public void visitSource(final String source, final String debug) {
         AttributesImpl att = new AttributesImpl();
         if (source != null) {
@@ -99,12 +91,14 @@ public final class SAXClassAdapter extends ClassVisitor {
             att.addAttribute("", "debug", "debug", "", encode(debug));
         }
 
-        sa.addElement("source", att);
+        addElement("source", att);
     }
 
-    @Override
-    public void visitOuterClass(final String owner, final String name,
-            final String desc) {
+    public void visitOuterClass(
+        final String owner,
+        final String name,
+        final String desc)
+    {
         AttributesImpl att = new AttributesImpl();
         att.addAttribute("", "owner", "owner", "", owner);
         if (name != null) {
@@ -114,27 +108,28 @@ public final class SAXClassAdapter extends ClassVisitor {
             att.addAttribute("", "desc", "desc", "", desc);
         }
 
-        sa.addElement("outerclass", att);
+        addElement("outerclass", att);
     }
 
-    @Override
-    public AnnotationVisitor visitAnnotation(final String desc,
-            final boolean visible) {
-        return new SAXAnnotationAdapter(sa, "annotation", visible ? 1 : -1,
-                null, desc);
+    public AnnotationVisitor visitAnnotation(
+        final String desc,
+        final boolean visible)
+    {
+        return new SAXAnnotationAdapter(getContentHandler(),
+                "annotation",
+                visible ? 1 : -1,
+                null,
+                desc);
     }
 
-    @Override
-    public AnnotationVisitor visitTypeAnnotation(int typeRef,
-            TypePath typePath, String desc, boolean visible) {
-        return new SAXAnnotationAdapter(sa, "typeAnnotation", visible ? 1 : -1,
-                null, desc, typeRef, typePath);
-    }
-
-    @Override
-    public void visit(final int version, final int access, final String name,
-            final String signature, final String superName,
-            final String[] interfaces) {
+    public void visit(
+        final int version,
+        final int access,
+        final String name,
+        final String signature,
+        final String superName,
+        final String[] interfaces)
+    {
         StringBuffer sb = new StringBuffer();
         appendAccess(access | ACCESS_CLASS, sb);
 
@@ -144,32 +139,45 @@ public final class SAXClassAdapter extends ClassVisitor {
             att.addAttribute("", "name", "name", "", name);
         }
         if (signature != null) {
-            att.addAttribute("", "signature", "signature", "",
+            att.addAttribute("",
+                    "signature",
+                    "signature",
+                    "",
                     encode(signature));
         }
         if (superName != null) {
             att.addAttribute("", "parent", "parent", "", superName);
         }
-        att.addAttribute("", "major", "major", "",
+        att.addAttribute("",
+                "major",
+                "major",
+                "",
                 Integer.toString(version & 0xFFFF));
-        att.addAttribute("", "minor", "minor", "",
+        att.addAttribute("",
+                "minor",
+                "minor",
+                "",
                 Integer.toString(version >>> 16));
-        sa.addStart("class", att);
+        addStart("class", att);
 
-        sa.addStart("interfaces", new AttributesImpl());
+        addStart("interfaces", new AttributesImpl());
         if (interfaces != null && interfaces.length > 0) {
             for (int i = 0; i < interfaces.length; i++) {
                 AttributesImpl att2 = new AttributesImpl();
                 att2.addAttribute("", "name", "name", "", interfaces[i]);
-                sa.addElement("interface", att2);
+                addElement("interface", att2);
             }
         }
-        sa.addEnd("interfaces");
+        addEnd("interfaces");
     }
 
-    @Override
-    public FieldVisitor visitField(final int access, final String name,
-            final String desc, final String signature, final Object value) {
+    public FieldVisitor visitField(
+        final int access,
+        final String name,
+        final String desc,
+        final String signature,
+        final Object value)
+    {
         StringBuffer sb = new StringBuffer();
         appendAccess(access | ACCESS_FIELD, sb);
 
@@ -178,19 +186,26 @@ public final class SAXClassAdapter extends ClassVisitor {
         att.addAttribute("", "name", "name", "", name);
         att.addAttribute("", "desc", "desc", "", desc);
         if (signature != null) {
-            att.addAttribute("", "signature", "signature", "",
+            att.addAttribute("",
+                    "signature",
+                    "signature",
+                    "",
                     encode(signature));
         }
         if (value != null) {
             att.addAttribute("", "value", "value", "", encode(value.toString()));
         }
 
-        return new SAXFieldAdapter(sa, att);
+        return new SAXFieldAdapter(getContentHandler(), att);
     }
 
-    @Override
-    public MethodVisitor visitMethod(final int access, final String name,
-            final String desc, final String signature, final String[] exceptions) {
+    public MethodVisitor visitMethod(
+        final int access,
+        final String name,
+        final String desc,
+        final String signature,
+        final String[] exceptions)
+    {
         StringBuffer sb = new StringBuffer();
         appendAccess(access, sb);
 
@@ -201,24 +216,27 @@ public final class SAXClassAdapter extends ClassVisitor {
         if (signature != null) {
             att.addAttribute("", "signature", "signature", "", signature);
         }
-        sa.addStart("method", att);
+        addStart("method", att);
 
-        sa.addStart("exceptions", new AttributesImpl());
+        addStart("exceptions", new AttributesImpl());
         if (exceptions != null && exceptions.length > 0) {
             for (int i = 0; i < exceptions.length; i++) {
                 AttributesImpl att2 = new AttributesImpl();
                 att2.addAttribute("", "name", "name", "", exceptions[i]);
-                sa.addElement("exception", att2);
+                addElement("exception", att2);
             }
         }
-        sa.addEnd("exceptions");
+        addEnd("exceptions");
 
-        return new SAXCodeAdapter(sa, access);
+        return new SAXCodeAdapter(getContentHandler(), access);
     }
 
-    @Override
-    public final void visitInnerClass(final String name,
-            final String outerName, final String innerName, final int access) {
+    public final void visitInnerClass(
+        final String name,
+        final String outerName,
+        final String innerName,
+        final int access)
+    {
         StringBuffer sb = new StringBuffer();
         appendAccess(access | ACCESS_INNER, sb);
 
@@ -233,14 +251,13 @@ public final class SAXClassAdapter extends ClassVisitor {
         if (innerName != null) {
             att.addAttribute("", "innerName", "innerName", "", innerName);
         }
-        sa.addElement("innerclass", att);
+        addElement("innerclass", att);
     }
 
-    @Override
     public final void visitEnd() {
-        sa.addEnd("class");
+        addEnd("class");
         if (!singleDocument) {
-            sa.addDocumentEnd();
+            addDocumentEnd();
         }
     }
 
@@ -327,9 +344,6 @@ public final class SAXClassAdapter extends ClassVisitor {
         }
         if ((access & Opcodes.ACC_DEPRECATED) != 0) {
             sb.append("deprecated ");
-        }
-        if ((access & Opcodes.ACC_MANDATED) != 0) {
-            sb.append("mandated ");
         }
     }
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2014 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2013 Oracle and/or its affiliates. All rights reserved.
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 and Eclipse Distribution License v. 1.0
  * which accompanies this distribution.
@@ -291,7 +291,7 @@ public class MappingsGenerator {
                         if(nestedGroups == null || nestedGroups.isEmpty()) {
                             Property property = info.getProperties().get(nextAttributeNode.getName());
                             if(property == null) {
-                                //if there's no property associated with the attributeNode, just ignore it
+                                //if there's no property associated with the attributeNode, ignore
                                 continue;
                             }
                             JavaClass cls = property.getActualType();
@@ -1269,8 +1269,8 @@ public class MappingsGenerator {
                         
             if(xmlField !=null){
                 Mapping nestedMapping = (Mapping) mapping.getChoiceElementMappings().get(xmlField);
-                if(nestedMapping.isAbstractCompositeCollectionMapping()){ 
-                   //handle null policy set via xml metadata
+                if(nestedMapping.isAbstractCompositeCollectionMapping()){                   
+                   // handle null policy set via xml metadata
                    if (property.isSetNullPolicy()) {
                 	   ((CompositeCollectionMapping)nestedMapping).setNullPolicy(getNullPolicyFromProperty(property, namespace.getNamespaceResolverForDescriptor()));
                    } else if (next.isNillable() && property.isNillable()){
@@ -1756,7 +1756,6 @@ public class MappingsGenerator {
             mapping.getNullPolicy().setNullRepresentedByXsiNil(true);
             mapping.getNullPolicy().setMarshalNullRepresentation(XMLNullRepresentationType.XSI_NIL);
         }
-        
         // if the XPath is set (via xml-path) use it
         mapping.setField(getXPathForField(property, namespaceInfo, false, false));
         if (property.isSwaAttachmentRef()) {
@@ -1901,7 +1900,6 @@ public class MappingsGenerator {
         } else {
             mapping.setUseXMLRoot(true);
         }
-        
         return mapping;
     }
 
@@ -1975,7 +1973,7 @@ public class MappingsGenerator {
 
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitVarInsn(Opcodes.ALOAD, 0);
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
         mv.visitInsn(Opcodes.RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
@@ -2013,7 +2011,7 @@ public class MappingsGenerator {
         if(!qualifiedInternalValueClassName.equals("java/lang/Object")){
 	        mv = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_BRIDGE + Opcodes.ACC_SYNTHETIC, "getValue", "()Ljava/lang/Object;", null, null);
 	        mv.visitVarInsn(Opcodes.ALOAD, 0);
-	        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "getValue", "()L"+qualifiedInternalValueClassName+";", false);
+	        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "getValue", "()L"+qualifiedInternalValueClassName+";");
 	        mv.visitInsn(Opcodes.ARETURN);
 	        mv.visitMaxs(1, 1);
 	        mv.visitEnd();
@@ -2022,7 +2020,7 @@ public class MappingsGenerator {
 	        mv.visitVarInsn(Opcodes.ALOAD, 0);
 	        mv.visitVarInsn(Opcodes.ALOAD, 1);
 	        mv.visitTypeInsn(Opcodes.CHECKCAST, qualifiedInternalValueClassName);
-	        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "setValue", "(L"+qualifiedInternalValueClassName+";)V", false);
+	        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "setValue", "(L"+qualifiedInternalValueClassName+";)V");
 	        mv.visitInsn(Opcodes.RETURN);
 	        mv.visitMaxs(2, 2);
 	        mv.visitEnd();
@@ -2031,7 +2029,7 @@ public class MappingsGenerator {
         if(!qualifiedInternalKeyClassName.equals("java/lang/Object")){
             mv = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_BRIDGE + Opcodes.ACC_SYNTHETIC, "getKey", "()Ljava/lang/Object;", null, null);
             mv.visitVarInsn(Opcodes.ALOAD, 0);
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL,qualifiedInternalClassName, "getKey", "()L"+qualifiedInternalKeyClassName+";", false);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL,qualifiedInternalClassName, "getKey", "()L"+qualifiedInternalKeyClassName+";");
             mv.visitInsn(Opcodes.ARETURN);
             mv.visitMaxs(1, 1);
             mv.visitEnd();
@@ -2040,7 +2038,7 @@ public class MappingsGenerator {
             mv.visitVarInsn(Opcodes.ALOAD, 0);
             mv.visitVarInsn(Opcodes.ALOAD, 1);
             mv.visitTypeInsn(Opcodes.CHECKCAST, qualifiedInternalKeyClassName);
-            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "setKey", "(L"+qualifiedInternalKeyClassName+";)V", false);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, qualifiedInternalClassName, "setKey", "(L"+qualifiedInternalKeyClassName+";)V");
             mv.visitInsn(Opcodes.RETURN);
             mv.visitMaxs(2, 2);
             mv.visitEnd();
@@ -2722,7 +2720,7 @@ public class MappingsGenerator {
 
 
     private String prefixCustomXPath(String unprefixedXPath, Property property, NamespaceInfo nsInfo) {
-        StringBuilder newXPath = new StringBuilder(32);
+        String newXPath = "";
         QName schemaName = property.getSchemaName();
         String namespace = schemaName.getNamespaceURI();
 
@@ -2742,20 +2740,20 @@ public class MappingsGenerator {
             if (st.hasMoreTokens()) {
                 if (nextToken.lastIndexOf(Constants.COLON) != -1) {
                     // Token already has a user-supplied prefix
-                    newXPath.append(nextToken);
+                    newXPath += nextToken;
                 } else {
-                    newXPath.append(prefix).append(Constants.COLON).append(nextToken);
+                    newXPath += prefix + Constants.COLON + nextToken;
                 }
-                newXPath.append(Constants.XPATH_SEPARATOR);
+                newXPath += Constants.XPATH_SEPARATOR;
             } else {
                 // Last token is text()
-                newXPath.append(nextToken);
+                newXPath += nextToken;
             }
 
         }
-        return newXPath.toString();
+        return newXPath;
     }
-
+    
     public Field getXPathForField(Property property, NamespaceInfo namespaceInfo, boolean isTextMapping, boolean isAny) {
         Field xmlField = null;
         String xPath = property.getXmlPath();
@@ -2763,7 +2761,7 @@ public class MappingsGenerator {
             String newXPath = prefixCustomXPath(xPath, property, namespaceInfo);
             xmlField = new XMLField(newXPath);
         } else {
-            StringBuilder xPathBuilder = new StringBuilder();
+            xPath = "";
             if (property.isSetXmlElementWrapper()) {
                 XmlElementWrapper wrapper = property.getXmlElementWrapper();
                 String namespace = wrapper.getNamespace();
@@ -2774,43 +2772,44 @@ public class MappingsGenerator {
                         namespace = "";
                     }
                 }
-
+                
                 if (namespace.equals("")) {
-                    xPathBuilder.append(wrapper.getName()).append("/");
+                    xPath += (wrapper.getName() + "/");
                 } else {
-			String prefix = getPrefixForNamespace(namespace, namespaceInfo.getNamespaceResolverForDescriptor());
-			xPathBuilder.append(getQualifiedString(prefix, wrapper.getName() + "/"));
+                	String prefix = getPrefixForNamespace(namespace, namespaceInfo.getNamespaceResolverForDescriptor());
+                	xPath += getQualifiedString(prefix, wrapper.getName() + "/");
                 }
 
                 if (isAny || property.isMap()) {
-                    xmlField = new XMLField(xPathBuilder.toString());
+                    xPath = xPath.substring(0, xPath.length() - 1);
+                    xmlField = new XMLField(xPath);
                     return xmlField;
                 }
 
             }
             if (property.isAttribute()) {
                 if (property.isSetXmlPath()) {
-                    xPathBuilder.append(property.getXmlPath());
+                    xPath += property.getXmlPath();
                 } else {
                     QName name = property.getSchemaName();
                     String namespace = name.getNamespaceURI();
                     if (namespace.equals("")) {
-                        xPathBuilder.append(ATT).append(name.getLocalPart());
+                        xPath += (ATT + name.getLocalPart());
                     } else {
                         String prefix = getPrefixForNamespace(namespace, namespaceInfo.getNamespaceResolverForDescriptor());
-                        xPathBuilder.append(ATT).append(getQualifiedString(prefix, name.getLocalPart()));
+                    	xPath += ATT + getQualifiedString(prefix, name.getLocalPart());
                     }
                 }
-                xmlField = new XMLField(xPathBuilder.toString());
-            } else if (property.isXmlValue()) {
-		if(isBinaryData(property.getActualType())){
-			xmlField = new XMLField(".");
+                xmlField = new XMLField(xPath);
+            } else if (property.isXmlValue()) {                
+            	if(isBinaryData(property.getActualType())){
+            		xmlField = new XMLField(".");
             	}else{
             		xmlField = new XMLField("text()");
-		}
+            	}
             } else {
                 QName elementName = property.getSchemaName();
-                xmlField = getXPathForElement(xPathBuilder.toString(), elementName, namespaceInfo, isTextMapping);
+                xmlField = getXPathForElement(xPath, elementName, namespaceInfo, isTextMapping);
             }
         }
 
@@ -3214,11 +3213,11 @@ public class MappingsGenerator {
 	        mv.visitInsn(Opcodes.DUP);
 	        mv.visitLdcInsn(theQName.getNamespaceURI());
 	        mv.visitLdcInsn(theQName.getLocalPart());
-	        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "javax/xml/namespace/QName", "<init>", "(Ljava/lang/String;Ljava/lang/String;)V", false);
+	        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "javax/xml/namespace/QName", "<init>", "(Ljava/lang/String;Ljava/lang/String;)V");
 	        mv.visitLdcInsn(Type.getType(fieldType));
 	        mv.visitInsn(Opcodes.ACONST_NULL);
 
-	        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/eclipse/persistence/internal/jaxb/WrappedValue", "<init>", "(Ljavax/xml/namespace/QName;Ljava/lang/Class;Ljava/lang/Object;)V", false);
+	        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/eclipse/persistence/internal/jaxb/WrappedValue", "<init>", "(Ljavax/xml/namespace/QName;Ljava/lang/Class;Ljava/lang/Object;)V");
 	        mv.visitInsn(Opcodes.RETURN);
 	        mv.visitMaxs(5, 1);
 	        mv.visitEnd();
@@ -3251,9 +3250,8 @@ public class MappingsGenerator {
         return generatedMapEntryClasses;
     }
 
-    // Made static final for performance reasons.
-    private static final class MapEntryGeneratedKey {
-	@SuppressWarnings("unused")
+    private class MapEntryGeneratedKey {
+      	@SuppressWarnings("unused")
         String keyClassName;
 		@SuppressWarnings("unused")
         String valueClassName;
@@ -3367,7 +3365,6 @@ public class MappingsGenerator {
     	return areEquals(type, CoreClassConstants.APBYTE) ||areEquals(type, "javax.activation.DataHandler") || areEquals(type, "java.awt.Image") || areEquals(type, "javax.xml.transform.Source") || areEquals(type, "javax.mail.internet.MimeMultipart");
     }
 
-    // Made static final for performance reasons.
     /**
      * <p>An InstantiationPolicy that does not construct any objects (and therefore
      * will not throw validation errors caused by a lack of a no-arg constructor).</p>
@@ -3379,7 +3376,7 @@ public class MappingsGenerator {
      * @see org.eclipse.persistence.internal.descriptors.InstantiationPolicy
      * @see org.xml.sax.Locator
      */
-    private static final class NullInstantiationPolicy extends InstantiationPolicy {
+    private class NullInstantiationPolicy extends InstantiationPolicy {
 
         /**
          * Returns a new instance of this InstantiationPolicy's Descriptor's class.

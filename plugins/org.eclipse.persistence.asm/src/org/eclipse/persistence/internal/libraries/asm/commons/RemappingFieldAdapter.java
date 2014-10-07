@@ -1,6 +1,6 @@
 /***
  * ASM: a very small and fast Java bytecode manipulation framework
- * Copyright (c) 2000-2011 INRIA, France Telecom
+ * Copyright (c) 2000-2007 INRIA, France Telecom
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,41 +31,35 @@
 package org.eclipse.persistence.internal.libraries.asm.commons;
 
 import org.eclipse.persistence.internal.libraries.asm.AnnotationVisitor;
+import org.eclipse.persistence.internal.libraries.asm.Attribute;
 import org.eclipse.persistence.internal.libraries.asm.FieldVisitor;
-import org.eclipse.persistence.internal.libraries.asm.Opcodes;
-import org.eclipse.persistence.internal.libraries.asm.TypePath;
 
 /**
- * A {@link FieldVisitor} adapter for type remapping.
+ * A <code>FieldVisitor</code> adapter for type remapping.
  * 
  * @author Eugene Kuleshov
  */
-public class RemappingFieldAdapter extends FieldVisitor {
+public class RemappingFieldAdapter implements FieldVisitor {
 
+    private final FieldVisitor fv;
+    
     private final Remapper remapper;
 
-    public RemappingFieldAdapter(final FieldVisitor fv, final Remapper remapper) {
-        this(Opcodes.ASM5, fv, remapper);
-    }
-
-    protected RemappingFieldAdapter(final int api, final FieldVisitor fv,
-            final Remapper remapper) {
-        super(api, fv);
+    public RemappingFieldAdapter(FieldVisitor fv, Remapper remapper) {
+        this.fv = fv;
         this.remapper = remapper;
     }
 
-    @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        AnnotationVisitor av = fv.visitAnnotation(remapper.mapDesc(desc),
-                visible);
+        AnnotationVisitor av = fv.visitAnnotation(remapper.mapDesc(desc), visible);
         return av == null ? null : new RemappingAnnotationAdapter(av, remapper);
     }
 
-    @Override
-    public AnnotationVisitor visitTypeAnnotation(int typeRef,
-            TypePath typePath, String desc, boolean visible) {
-        AnnotationVisitor av = super.visitTypeAnnotation(typeRef, typePath,
-                remapper.mapDesc(desc), visible);
-        return av == null ? null : new RemappingAnnotationAdapter(av, remapper);
+    public void visitAttribute(Attribute attr) {
+        fv.visitAttribute(attr);
+    }
+
+    public void visitEnd() {
+        fv.visitEnd();
     }
 }

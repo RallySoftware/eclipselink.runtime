@@ -1,6 +1,6 @@
 /***
  * ASM: a very small and fast Java bytecode manipulation framework
- * Copyright (c) 2000-2011 INRIA, France Telecom
+ * Copyright (c) 2000-2007 INRIA, France Telecom
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,6 @@ package org.eclipse.persistence.internal.libraries.asm.tree.analysis;
 import java.util.AbstractSet;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -40,17 +39,15 @@ import java.util.Set;
  * 
  * @author Eric Bruneton
  */
-class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
+class SmallSet extends AbstractSet implements Iterator {
 
     // if e1 is null, e2 must be null; otherwise e2 must be different from e1
 
-    E e1, e2;
+    Object e1, e2;
 
-    static final <T> Set<T> emptySet() {
-        return new SmallSet<T>(null, null);
-    }
+    static final Set EMPTY_SET = new SmallSet(null, null);
 
-    SmallSet(final E e1, final E e2) {
+    SmallSet(final Object e1, final Object e2) {
         this.e1 = e1;
         this.e2 = e2;
     }
@@ -59,12 +56,10 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
     // Implementation of inherited abstract methods
     // -------------------------------------------------------------------------
 
-    @Override
-    public Iterator<E> iterator() {
-        return new SmallSet<E>(e1, e2);
+    public Iterator iterator() {
+        return new SmallSet(e1, e2);
     }
 
-    @Override
     public int size() {
         return e1 == null ? 0 : (e2 == null ? 1 : 2);
     }
@@ -77,11 +72,8 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
         return e1 != null;
     }
 
-    public E next() {
-        if (e1 == null) {
-            throw new NoSuchElementException();
-        }
-        E e = e1;
+    public Object next() {
+        Object e = e1;
         e1 = e2;
         e2 = null;
         return e;
@@ -94,7 +86,7 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
     // Utility methods
     // -------------------------------------------------------------------------
 
-    Set<E> union(final SmallSet<E> s) {
+    Set union(final SmallSet s) {
         if ((s.e1 == e1 && s.e2 == e2) || (s.e1 == e2 && s.e2 == e1)) {
             return this; // if the two sets are equal, return this
         }
@@ -106,7 +98,7 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
         }
         if (s.e2 == null) { // s contains exactly one element
             if (e2 == null) {
-                return new SmallSet<E>(e1, s.e1); // necessarily e1 != s.e1
+                return new SmallSet(e1, s.e1); // necessarily e1 != s.e1
             } else if (s.e1 == e1 || s.e1 == e2) { // s is included in this
                 return this;
             }
@@ -120,7 +112,7 @@ class SmallSet<E> extends AbstractSet<E> implements Iterator<E> {
             }
         }
         // here we know that there are at least 3 distinct elements
-        HashSet<E> r = new HashSet<E>(4);
+        HashSet r = new HashSet(4);
         r.add(e1);
         if (e2 != null) {
             r.add(e2);

@@ -1,6 +1,6 @@
 /***
  * ASM: a very small and fast Java bytecode manipulation framework
- * Copyright (c) 2000-2011 INRIA, France Telecom
+ * Copyright (c) 2000-2007 INRIA, France Telecom
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,9 @@ public class LineNumberNode extends AbstractInsnNode {
     /**
      * Constructs a new {@link LineNumberNode}.
      * 
-     * @param line
-     *            a line number. This number refers to the source file from
-     *            which the class was compiled.
-     * @param start
-     *            the first instruction corresponding to this line number.
+     * @param line a line number. This number refers to the source file from
+     *        which the class was compiled.
+     * @param start the first instruction corresponding to this line number.
      */
     public LineNumberNode(final int line, final LabelNode start) {
         super(-1);
@@ -67,18 +65,15 @@ public class LineNumberNode extends AbstractInsnNode {
         this.start = start;
     }
 
-    @Override
     public int getType() {
         return LINE;
     }
 
-    @Override
     public void accept(final MethodVisitor mv) {
         mv.visitLineNumber(line, start.getLabel());
     }
 
-    @Override
-    public AbstractInsnNode clone(final Map<LabelNode, LabelNode> labels) {
+    public AbstractInsnNode clone(final Map labels) {
         return new LineNumberNode(line, clone(start, labels));
     }
 }

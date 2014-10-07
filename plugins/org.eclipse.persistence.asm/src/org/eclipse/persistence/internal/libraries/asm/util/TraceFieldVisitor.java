@@ -1,6 +1,6 @@
 /***
  * ASM: a very small and fast Java bytecode manipulation framework
- * Copyright (c) 2000-2011 INRIA, France Telecom
+ * Copyright (c) 2000-2007 INRIA, France Telecom
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,56 +32,47 @@ package org.eclipse.persistence.internal.libraries.asm.util;
 import org.eclipse.persistence.internal.libraries.asm.AnnotationVisitor;
 import org.eclipse.persistence.internal.libraries.asm.Attribute;
 import org.eclipse.persistence.internal.libraries.asm.FieldVisitor;
-import org.eclipse.persistence.internal.libraries.asm.Opcodes;
-import org.eclipse.persistence.internal.libraries.asm.TypePath;
 
 /**
- * A {@link FieldVisitor} that prints the fields it visits with a
- * {@link Printer}.
+ * A {@link FieldVisitor} that prints a disassembled view of the fields it
+ * visits.
  * 
  * @author Eric Bruneton
  */
-public final class TraceFieldVisitor extends FieldVisitor {
+public class TraceFieldVisitor extends TraceAbstractVisitor implements
+        FieldVisitor
+{
 
-    public final Printer p;
+    /**
+     * The {@link FieldVisitor} to which this visitor delegates calls. May be
+     * <tt>null</tt>.
+     */
+    protected FieldVisitor fv;
 
-    public TraceFieldVisitor(final Printer p) {
-        this(null, p);
+    public AnnotationVisitor visitAnnotation(
+        final String desc,
+        final boolean visible)
+    {
+        AnnotationVisitor av = super.visitAnnotation(desc, visible);
+        if (fv != null) {
+            ((TraceAnnotationVisitor) av).av = fv.visitAnnotation(desc, visible);
+        }
+        return av;
     }
 
-    public TraceFieldVisitor(final FieldVisitor fv, final Printer p) {
-        super(Opcodes.ASM5, fv);
-        this.p = p;
-    }
-
-    @Override
-    public AnnotationVisitor visitAnnotation(final String desc,
-            final boolean visible) {
-        Printer p = this.p.visitFieldAnnotation(desc, visible);
-        AnnotationVisitor av = fv == null ? null : fv.visitAnnotation(desc,
-                visible);
-        return new TraceAnnotationVisitor(av, p);
-    }
-
-    @Override
-    public AnnotationVisitor visitTypeAnnotation(int typeRef,
-            TypePath typePath, String desc, boolean visible) {
-        Printer p = this.p.visitFieldTypeAnnotation(typeRef, typePath, desc,
-                visible);
-        AnnotationVisitor av = fv == null ? null : fv.visitTypeAnnotation(
-                typeRef, typePath, desc, visible);
-        return new TraceAnnotationVisitor(av, p);
-    }
-
-    @Override
     public void visitAttribute(final Attribute attr) {
-        p.visitFieldAttribute(attr);
         super.visitAttribute(attr);
+
+        if (fv != null) {
+            fv.visitAttribute(attr);
+        }
     }
 
-    @Override
     public void visitEnd() {
-        p.visitFieldEnd();
         super.visitEnd();
+
+        if (fv != null) {
+            fv.visitEnd();
+        }
     }
 }
