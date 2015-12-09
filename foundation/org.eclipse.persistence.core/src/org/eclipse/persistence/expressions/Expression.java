@@ -14,19 +14,48 @@
  ******************************************************************************/  
 package org.eclipse.persistence.expressions;
 
-import java.util.*;
-import java.io.*;
-
-import org.eclipse.persistence.mappings.DatabaseMapping;
-import org.eclipse.persistence.queries.*;
 import org.eclipse.persistence.descriptors.ClassDescriptor;
-import org.eclipse.persistence.exceptions.*;
-import org.eclipse.persistence.history.*;
-import org.eclipse.persistence.internal.helper.*;
-import org.eclipse.persistence.internal.expressions.*;
-import org.eclipse.persistence.internal.localization.*;
+import org.eclipse.persistence.exceptions.QueryException;
+import org.eclipse.persistence.history.AsOfClause;
+import org.eclipse.persistence.internal.expressions.ArgumentListFunctionExpression;
+import org.eclipse.persistence.internal.expressions.BaseExpression;
+import org.eclipse.persistence.internal.expressions.CollectionExpression;
+import org.eclipse.persistence.internal.expressions.ConstantExpression;
+import org.eclipse.persistence.internal.expressions.ExpressionIterator;
+import org.eclipse.persistence.internal.expressions.ExpressionJavaPrinter;
+import org.eclipse.persistence.internal.expressions.ExpressionNormalizer;
+import org.eclipse.persistence.internal.expressions.ExpressionSQLPrinter;
+import org.eclipse.persistence.internal.expressions.FunctionExpression;
+import org.eclipse.persistence.internal.expressions.LiteralExpression;
+import org.eclipse.persistence.internal.expressions.MapEntryExpression;
+import org.eclipse.persistence.internal.expressions.ParameterExpression;
+import org.eclipse.persistence.internal.expressions.SQLSelectStatement;
+import org.eclipse.persistence.internal.expressions.SubSelectExpression;
+import org.eclipse.persistence.internal.expressions.TableAliasLookup;
+import org.eclipse.persistence.internal.helper.ClassConstants;
+import org.eclipse.persistence.internal.helper.DatabaseField;
+import org.eclipse.persistence.internal.helper.DatabaseTable;
+import org.eclipse.persistence.internal.localization.ToStringLocalization;
 import org.eclipse.persistence.internal.sessions.AbstractRecord;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
+import org.eclipse.persistence.mappings.DatabaseMapping;
+import org.eclipse.persistence.queries.DatabaseQuery;
+import org.eclipse.persistence.queries.ReadQuery;
+import org.eclipse.persistence.queries.ReportQuery;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.Serializable;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.Vector;
 
 /**
  * <p>
@@ -1961,7 +1990,7 @@ public abstract class Expression implements Serializable, Cloneable {
             v.add(sql.substring(start, sql.length()));
         }
         anOperator.printsAs(v);
-        anOperator.bePrefix();
+        anOperator.bePostfix();
         anOperator.setNodeClass(ClassConstants.FunctionExpression_Class);
 
         return anOperator.expressionForArguments(this, arguments);
