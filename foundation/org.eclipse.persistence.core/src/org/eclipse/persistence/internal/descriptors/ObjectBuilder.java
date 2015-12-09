@@ -20,12 +20,6 @@
  ******************************************************************************/  
 package org.eclipse.persistence.internal.descriptors;
 
-import java.io.*;
-import java.util.*;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-
 import org.eclipse.persistence.annotations.BatchFetchType;
 import org.eclipse.persistence.annotations.CacheKeyType;
 import org.eclipse.persistence.annotations.IdValidation;
@@ -37,33 +31,93 @@ import org.eclipse.persistence.descriptors.FetchGroupManager;
 import org.eclipse.persistence.descriptors.InheritancePolicy;
 import org.eclipse.persistence.descriptors.changetracking.ChangeTracker;
 import org.eclipse.persistence.descriptors.changetracking.ObjectChangePolicy;
-import org.eclipse.persistence.exceptions.*;
-import org.eclipse.persistence.expressions.*;
+import org.eclipse.persistence.exceptions.DatabaseException;
+import org.eclipse.persistence.exceptions.DescriptorException;
+import org.eclipse.persistence.exceptions.QueryException;
+import org.eclipse.persistence.exceptions.ValidationException;
+import org.eclipse.persistence.expressions.Expression;
+import org.eclipse.persistence.expressions.ExpressionBuilder;
 import org.eclipse.persistence.indirection.ValueHolderInterface;
 import org.eclipse.persistence.internal.core.descriptors.CoreObjectBuilder;
 import org.eclipse.persistence.internal.databaseaccess.DatabaseAccessor;
 import org.eclipse.persistence.internal.databaseaccess.DatabasePlatform;
 import org.eclipse.persistence.internal.databaseaccess.Platform;
-import org.eclipse.persistence.internal.expressions.*;
-import org.eclipse.persistence.internal.helper.*;
-import org.eclipse.persistence.internal.identitymaps.*;
+import org.eclipse.persistence.internal.expressions.ObjectExpression;
+import org.eclipse.persistence.internal.expressions.QueryKeyExpression;
+import org.eclipse.persistence.internal.expressions.SQLSelectStatement;
+import org.eclipse.persistence.internal.helper.DatabaseField;
+import org.eclipse.persistence.internal.helper.DatabaseTable;
+import org.eclipse.persistence.internal.helper.Helper;
+import org.eclipse.persistence.internal.helper.IdentityHashSet;
+import org.eclipse.persistence.internal.helper.InvalidObject;
+import org.eclipse.persistence.internal.helper.ThreadCursoredList;
+import org.eclipse.persistence.internal.identitymaps.CacheId;
+import org.eclipse.persistence.internal.identitymaps.CacheKey;
 import org.eclipse.persistence.internal.indirection.ProxyIndirectionPolicy;
 import org.eclipse.persistence.internal.queries.AttributeItem;
 import org.eclipse.persistence.internal.queries.ContainerPolicy;
 import org.eclipse.persistence.internal.queries.EntityFetchGroup;
 import org.eclipse.persistence.internal.queries.JoinedAttributeManager;
-import org.eclipse.persistence.internal.sessions.*;
+import org.eclipse.persistence.internal.sessions.AbstractRecord;
+import org.eclipse.persistence.internal.sessions.AbstractSession;
+import org.eclipse.persistence.internal.sessions.AggregateChangeRecord;
+import org.eclipse.persistence.internal.sessions.AggregateObjectChangeSet;
+import org.eclipse.persistence.internal.sessions.ArrayRecord;
+import org.eclipse.persistence.internal.sessions.ChangeRecord;
+import org.eclipse.persistence.internal.sessions.DirectToFieldChangeRecord;
+import org.eclipse.persistence.internal.sessions.MergeManager;
+import org.eclipse.persistence.internal.sessions.ObjectChangeSet;
+import org.eclipse.persistence.internal.sessions.ResultSetRecord;
+import org.eclipse.persistence.internal.sessions.SimpleResultSetRecord;
+import org.eclipse.persistence.internal.sessions.TransformationMappingChangeRecord;
+import org.eclipse.persistence.internal.sessions.UnitOfWorkChangeSet;
+import org.eclipse.persistence.internal.sessions.UnitOfWorkImpl;
 import org.eclipse.persistence.logging.SessionLog;
-import org.eclipse.persistence.mappings.*;
+import org.eclipse.persistence.mappings.AggregateMapping;
+import org.eclipse.persistence.mappings.AggregateObjectMapping;
+import org.eclipse.persistence.mappings.ContainerMapping;
+import org.eclipse.persistence.mappings.DatabaseMapping;
 import org.eclipse.persistence.mappings.DatabaseMapping.WriteType;
-import org.eclipse.persistence.mappings.foundation.*;
-import org.eclipse.persistence.queries.*;
-import org.eclipse.persistence.mappings.querykeys.*;
+import org.eclipse.persistence.mappings.ForeignReferenceMapping;
+import org.eclipse.persistence.mappings.ObjectReferenceMapping;
+import org.eclipse.persistence.mappings.foundation.AbstractColumnMapping;
+import org.eclipse.persistence.mappings.foundation.AbstractDirectMapping;
+import org.eclipse.persistence.mappings.foundation.AbstractTransformationMapping;
+import org.eclipse.persistence.mappings.querykeys.DirectQueryKey;
+import org.eclipse.persistence.mappings.querykeys.QueryKey;
 import org.eclipse.persistence.oxm.XMLContext;
-import org.eclipse.persistence.sessions.remote.*;
+import org.eclipse.persistence.queries.AttributeGroup;
+import org.eclipse.persistence.queries.DataReadQuery;
+import org.eclipse.persistence.queries.FetchGroup;
+import org.eclipse.persistence.queries.FetchGroupTracker;
+import org.eclipse.persistence.queries.LoadGroup;
+import org.eclipse.persistence.queries.ObjectBuildingQuery;
+import org.eclipse.persistence.queries.ObjectLevelModifyQuery;
+import org.eclipse.persistence.queries.ObjectLevelReadQuery;
+import org.eclipse.persistence.queries.QueryByExamplePolicy;
+import org.eclipse.persistence.queries.ReadAllQuery;
+import org.eclipse.persistence.queries.ReadObjectQuery;
+import org.eclipse.persistence.queries.WriteObjectQuery;
 import org.eclipse.persistence.sessions.CopyGroup;
-import org.eclipse.persistence.sessions.SessionProfiler;
 import org.eclipse.persistence.sessions.DatabaseRecord;
+import org.eclipse.persistence.sessions.SessionProfiler;
+import org.eclipse.persistence.sessions.remote.DistributedSession;
+
+import java.io.Serializable;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 
 /**
  * <p><b>Purpose</b>: Object builder is one of the behavior class attached to descriptor.
@@ -1037,7 +1091,7 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                 // bug # 3388383 If this thread does not have the active lock then someone is building the object so in order to maintain data integrity this thread will not
                 // fight to overwrite the object ( this also will avoid potential deadlock situations
                 if ((cacheKey.getActiveThread() == Thread.currentThread()) && ((query.shouldRefreshIdentityMapResult() || concreteDescriptor.shouldAlwaysRefreshCache() || isInvalidated ) && ((cacheKey.getLastUpdatedQueryId() != query.getQueryId()) && !cacheKey.isLockedByMergeManager()))) {
-                    cacheHit = refreshObjectIfRequired(concreteDescriptor, cacheKey, cacheKey.getObject(), query, joinManager, databaseRow, session, false);
+                    cacheHit = refreshObjectIfRequired(concreteDescriptor, cacheKey, cacheKey.getObject(), query, joinManager, databaseRow, session, false, isInvalidated);
                 } else if ((concreteFetchGroupManager != null) && (concreteFetchGroupManager.isPartialObject(domainObject) && (!concreteFetchGroupManager.isObjectValidForFetchGroup(domainObject, concreteFetchGroupManager.getEntityFetchGroup(fetchGroup))))) {
                     cacheHit = false;
                     // The fetched object is not sufficient for the fetch group of the query 
@@ -1195,9 +1249,9 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                 if ((sharedCacheKey.getActiveThread() == Thread.currentThread()) && ((query.shouldRefreshIdentityMapResult() || concreteDescriptor.shouldAlwaysRefreshCache() || isInvalidated) && ((sharedCacheKey.getLastUpdatedQueryId() != query.getQueryId()) && !sharedCacheKey.isLockedByMergeManager()))) {
                     
                     //need to refresh. shared cache instance
-                    cacheHit = refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, cachedObject, query, joinManager, databaseRow, session.getParent(), true);
+                    cacheHit = refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, cachedObject, query, joinManager, databaseRow, session.getParent(), true, isInvalidated);
                     //shared cache was refreshed and a refresh has been requested so lets refresh the protected object as well
-                    refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, protectedObject, query, joinManager, databaseRow, session, true);
+                    refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, protectedObject, query, joinManager, databaseRow, session, true, isInvalidated);
                 } else if (fetchGroupManager != null && (fetchGroupManager.isPartialObject(protectedObject) && (!fetchGroupManager.isObjectValidForFetchGroup(protectedObject, fetchGroupManager.getEntityFetchGroup(fetchGroup))))) {
                     cacheHit = false;
                     // The fetched object is not sufficient for the fetch group of the query 
@@ -4265,7 +4319,7 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
     /**
      * This method is called when a cached Entity needs to be refreshed
      */
-    protected boolean refreshObjectIfRequired(ClassDescriptor concreteDescriptor, CacheKey cacheKey, Object domainObject, ObjectBuildingQuery query, JoinedAttributeManager joinManager, AbstractRecord databaseRow, AbstractSession session, boolean targetIsProtected){
+    protected boolean refreshObjectIfRequired(ClassDescriptor concreteDescriptor, CacheKey cacheKey, Object domainObject, ObjectBuildingQuery query, JoinedAttributeManager joinManager, AbstractRecord databaseRow, AbstractSession session, boolean targetIsProtected, boolean isInvalidated){
         boolean cacheHit = true;
         FetchGroup fetchGroup = query.getExecutionFetchGroup(concreteDescriptor);
         FetchGroupManager fetchGroupManager = concreteDescriptor.getFetchGroupManager();
@@ -4281,15 +4335,17 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                 OptimisticLockingPolicy policy = concreteDescriptor.getOptimisticLockingPolicy();
                 Object cacheValue = policy.getValueToPutInCache(databaseRow, session);
                 if (concreteDescriptor.getCachePolicy().shouldOnlyRefreshCacheIfNewerVersion()) {
+                    boolean isNewerVersion;
                     if (cacheValue == null) {
-                        refreshRequired = policy.isNewerVersion(databaseRow, domainObject, cacheKey.getKey(), session);
+                        isNewerVersion = policy.isNewerVersion(databaseRow, domainObject, cacheKey.getKey(), session);
                     } else {
                         // avoid extracting lock value from the row for the second time, that would unnecessary trigger ResultSetRecord
-                        refreshRequired = policy.isNewerVersion(cacheValue, domainObject, cacheKey.getKey(), session);
+                        isNewerVersion = policy.isNewerVersion(cacheValue, domainObject, cacheKey.getKey(), session);
                     }
-                    if (!refreshRequired) {
+                    if (!isInvalidated) {
                         cacheKey.setReadTime(query.getExecutionTime());
                     }
+                    refreshRequired = isInvalidated || isNewerVersion;
                 }
                 if (refreshRequired) {
                     // Update the write lock value.
