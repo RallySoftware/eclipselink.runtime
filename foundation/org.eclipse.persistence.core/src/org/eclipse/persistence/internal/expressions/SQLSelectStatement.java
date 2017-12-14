@@ -1,8 +1,8 @@
 /*******************************************************************************
- * Copyright (c) 1998, 2016 Oracle and/or its affiliates. All rights reserved.
- * This program and the accompanying materials are made available under the
- * terms of the Eclipse Public License v1.0 and Eclipse Distribution License v. 1.0
- * which accompanies this distribution.
+ * Copyright (c) 1998, 2014 Oracle and/or its affiliates. All rights reserved.
+ * This program and the accompanying materials are made available under the 
+ * terms of the Eclipse Public License v1.0 and Eclipse Distribution License v. 1.0 
+ * which accompanies this distribution. 
  * The Eclipse Public License is available at http://www.eclipse.org/legal/epl-v10.html
  * and the Eclipse Distribution License is available at
  * http://www.eclipse.org/org/documents/edl-v10.php.
@@ -13,7 +13,13 @@
  *       - 394524: Invalid query key [...] in expression
  *     04/30/2014-2.6 Lukas Jungmann
  *       - 380101: Invalid MySQL SQL syntax in query with LIMIT and FOR UPDATE
+ *        *     Oracle - initial API and implementation from Oracle TopLink
+ *     20/11/2012-2.5 Guy Pelletier
+ *       - 394524: Invalid query key [...] in expression
+ *     04/30/2014-2.6 Lukas Jungmann
+ *       - 380101: Invalid MySQL SQL syntax in query with LIMIT and FOR UPDATE
  ******************************************************************************/
+
 package org.eclipse.persistence.internal.expressions;
 
 import static org.eclipse.persistence.queries.ReadAllQuery.Direction.CHILD_TO_PARENT;
@@ -175,17 +181,25 @@ public class SQLSelectStatement extends SQLStatement {
      * When distinct is used with order by the ordered fields must be in the select clause.
      */
     protected void addOrderByExpressionToSelectForDistinct() {
-        for (Expression orderExpression : getOrderByExpressions()) {
-            Expression fieldExpression = orderExpression;
+        List<Expression> expressionsCopy = new ArrayList<Expression>(getOrderByExpressions());
+
+        for (int i = 0; i < expressionsCopy.size(); i++) {
+            Expression fieldExpression = expressionsCopy.get(i);
 
             while (fieldExpression.isFunctionExpression() && (fieldExpression.getOperator().isOrderOperator())) {
-                fieldExpression = ((FunctionExpression)fieldExpression).getBaseExpression();
+                fieldExpression = ((FunctionExpression) fieldExpression).getBaseExpression();
             }
 
             // Changed to call a method to loop through the fields vector and check each element
             // individually. Jon D. May 4, 2000 for pr 7811
             if ((fieldExpression.selectIfOrderedBy()) && !fieldsContainField(getFields(), fieldExpression)) {
-                addField(fieldExpression);
+                if (fieldExpression.isFunctionExpression()) {
+                    addField(fieldExpression.as("xOrder"));
+                    getOrderByExpressions().remove(i);
+                    getOrderByExpressions().add(fieldExpression.literal("xOrder"));
+                } else {
+                    addField(fieldExpression);
+                }
             }
         }
     }
@@ -1134,7 +1148,7 @@ public class SQLSelectStatement extends SQLStatement {
     public ReadAllQuery.Direction getDirection() {
         return direction;
     }
-
+    
     /**
      * INTERNAL:
      * Return the next value of fieldCounter
