@@ -146,9 +146,17 @@ public class SQLSelectStatement extends SQLStatement {
             // individually. Jon D. May 4, 2000 for pr 7811
             if ((fieldExpression.selectIfOrderedBy()) && !fieldsContainField(getFields(), fieldExpression)) {
                 if (fieldExpression.isFunctionExpression()) {
-                    addField(fieldExpression.as("xOrder"));
+                    String orderName = "xOrder" + i;
+                    addField(fieldExpression.as(orderName));
+                    String literal = null;
+                    if(getOrderByExpressions().get(i).getOperator().isOrderOperator() && getOrderByExpressions().get(i).getOperator().getDatabaseStrings()[0].contains("DESC")) {
+                        literal = orderName + " DESC";
+                    } else {
+                        literal = orderName;
+                    }
                     getOrderByExpressions().remove(i);
-                    getOrderByExpressions().add(fieldExpression.literal("xOrder"));
+                    getOrderByExpressions().add(i, fieldExpression.literal(literal));
+
                 } else {
                     addField(fieldExpression);
                 }
