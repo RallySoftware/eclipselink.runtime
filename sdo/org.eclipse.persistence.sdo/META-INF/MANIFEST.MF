@@ -65,4 +65,3 @@ Import-Package: javax.management;resolution:=optional,
  org.w3c.dom;resolution:=optional,
  org.xml.sax;resolution:=optional
 Bundle-SymbolicName: org.eclipse.persistence.sdo
-
