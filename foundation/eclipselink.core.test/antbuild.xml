@@ -525,6 +525,7 @@
             <jvmarg line="${additional.jvmargs}"/>
             <jvmarg value="${test.security-manager}"/>
             <jvmarg value="${test.security-manager.policy}"/>
+            <jvmarg value="-Djava.net.preferIPv4Stack=true"/>
             <classpath>
                 <path refid="core_test.run.path"/>
             </classpath>
