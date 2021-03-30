@@ -178,8 +178,10 @@ public class SQLSelectStatement extends SQLStatement {
      * When distinct is used with order by the ordered fields must be in the select clause.
      */
     protected void addOrderByExpressionToSelectForDistinct() {
-        for (Expression orderExpression : getOrderByExpressions()) {
-            Expression fieldExpression = orderExpression;
+        List<Expression> expressionsCopy = new ArrayList<Expression>(getOrderByExpressions());
+
+        for (int i = 0; i < expressionsCopy.size(); i++) {
+            Expression fieldExpression = expressionsCopy.get(i);
 
             while (fieldExpression.isFunctionExpression() && (fieldExpression.getOperator().isOrderOperator())) {
                 fieldExpression = ((FunctionExpression)fieldExpression).getBaseExpression();
@@ -188,7 +190,21 @@ public class SQLSelectStatement extends SQLStatement {
             // Changed to call a method to loop through the fields vector and check each element
             // individually. Jon D. May 4, 2000 for pr 7811
             if ((fieldExpression.selectIfOrderedBy()) && !fieldsContainField(getFields(), fieldExpression)) {
-                addField(fieldExpression);
+                if (fieldExpression.isFunctionExpression()) {
+                    String orderName = "xOrder" + i;
+                    addField(fieldExpression.as(orderName));
+                    String literal = null;
+                    if(getOrderByExpressions().get(i).getOperator().isOrderOperator() && getOrderByExpressions().get(i).getOperator().getDatabaseStrings()[0].contains("DESC")) {
+                        literal = orderName + " DESC";
+                    } else {
+                        literal = orderName;
+                    }
+                    getOrderByExpressions().remove(i);
+                    getOrderByExpressions().add(i, fieldExpression.literal(literal));
+
+                } else {
+                    addField(fieldExpression);
+                }
             }
         }
     }
