@@ -1963,7 +1963,7 @@ public abstract class Expression implements Serializable, Cloneable {
             v.add(sql.substring(start, sql.length()));
         }
         anOperator.printsAs(v);
-        anOperator.bePrefix();
+        anOperator.bePostfix();
         anOperator.setNodeClass(ClassConstants.FunctionExpression_Class);
 
         return anOperator.expressionForArguments(this, arguments);
