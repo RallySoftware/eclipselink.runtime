@@ -1047,7 +1047,7 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                 // bug # 3388383 If this thread does not have the active lock then someone is building the object so in order to maintain data integrity this thread will not
                 // fight to overwrite the object ( this also will avoid potential deadlock situations
                 if ((cacheKey.getActiveThread() == Thread.currentThread()) && ((query.shouldRefreshIdentityMapResult() || concreteDescriptor.shouldAlwaysRefreshCache() || isInvalidated ) && ((cacheKey.getLastUpdatedQueryId() != query.getQueryId()) && !cacheKey.isLockedByMergeManager()))) {
-                    cacheHit = refreshObjectIfRequired(concreteDescriptor, cacheKey, cacheKey.getObject(), query, joinManager, databaseRow, session, false);
+                    cacheHit = refreshObjectIfRequired(concreteDescriptor, cacheKey, cacheKey.getObject(), query, joinManager, databaseRow, session, false, isInvalidated);
                 } else if ((concreteFetchGroupManager != null) && (concreteFetchGroupManager.isPartialObject(domainObject) && (!concreteFetchGroupManager.isObjectValidForFetchGroup(domainObject, concreteFetchGroupManager.getEntityFetchGroup(fetchGroup))))) {
                     cacheHit = false;
                     // The fetched object is not sufficient for the fetch group of the query
@@ -1205,9 +1205,9 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                 if ((sharedCacheKey.getActiveThread() == Thread.currentThread()) && ((query.shouldRefreshIdentityMapResult() || concreteDescriptor.shouldAlwaysRefreshCache() || isInvalidated) && ((sharedCacheKey.getLastUpdatedQueryId() != query.getQueryId()) && !sharedCacheKey.isLockedByMergeManager()))) {
 
                     //need to refresh. shared cache instance
-                    cacheHit = refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, cachedObject, query, joinManager, databaseRow, session.getParent(), true);
+                    cacheHit = refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, cachedObject, query, joinManager, databaseRow, session.getParent(), true, isInvalidated);
                     //shared cache was refreshed and a refresh has been requested so lets refresh the protected object as well
-                    refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, protectedObject, query, joinManager, databaseRow, session, true);
+                    refreshObjectIfRequired(concreteDescriptor, sharedCacheKey, protectedObject, query, joinManager, databaseRow, session, true, isInvalidated);
                 } else if (fetchGroupManager != null && (fetchGroupManager.isPartialObject(protectedObject) && (!fetchGroupManager.isObjectValidForFetchGroup(protectedObject, fetchGroupManager.getEntityFetchGroup(fetchGroup))))) {
                     cacheHit = false;
                     // The fetched object is not sufficient for the fetch group of the query
@@ -4281,7 +4281,7 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
     /**
      * This method is called when a cached Entity needs to be refreshed
      */
-    protected boolean refreshObjectIfRequired(ClassDescriptor concreteDescriptor, CacheKey cacheKey, Object domainObject, ObjectBuildingQuery query, JoinedAttributeManager joinManager, AbstractRecord databaseRow, AbstractSession session, boolean targetIsProtected){
+    protected boolean refreshObjectIfRequired(ClassDescriptor concreteDescriptor, CacheKey cacheKey, Object domainObject, ObjectBuildingQuery query, JoinedAttributeManager joinManager, AbstractRecord databaseRow, AbstractSession session, boolean targetIsProtected, boolean isInvalidated){
         boolean cacheHit = true;
         FetchGroup fetchGroup = query.getExecutionFetchGroup(concreteDescriptor);
         FetchGroupManager fetchGroupManager = concreteDescriptor.getFetchGroupManager();
@@ -4297,15 +4297,17 @@ public class ObjectBuilder extends CoreObjectBuilder<AbstractRecord, AbstractSes
                 OptimisticLockingPolicy policy = concreteDescriptor.getOptimisticLockingPolicy();
                 Object cacheValue = policy.getValueToPutInCache(databaseRow, session);
                 if (concreteDescriptor.getCachePolicy().shouldOnlyRefreshCacheIfNewerVersion()) {
+                    boolean isNewerVersion;
                     if (cacheValue == null) {
-                        refreshRequired = policy.isNewerVersion(databaseRow, domainObject, cacheKey.getKey(), session);
+                        isNewerVersion = policy.isNewerVersion(databaseRow, domainObject, cacheKey.getKey(), session);
                     } else {
                         // avoid extracting lock value from the row for the second time, that would unnecessary trigger ResultSetRecord
-                        refreshRequired = policy.isNewerVersion(cacheValue, domainObject, cacheKey.getKey(), session);
+                        isNewerVersion = policy.isNewerVersion(cacheValue, domainObject, cacheKey.getKey(), session);
                     }
-                    if (!refreshRequired) {
+                    if (!isInvalidated) {
                         cacheKey.setReadTime(query.getExecutionTime());
                     }
+                    refreshRequired = isInvalidated || isNewerVersion;
                 }
                 if (refreshRequired) {
                     // Update the write lock value.
