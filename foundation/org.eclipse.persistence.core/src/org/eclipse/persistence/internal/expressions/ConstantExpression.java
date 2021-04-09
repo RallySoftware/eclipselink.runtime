@@ -142,6 +142,19 @@ public class ConstantExpression extends Expression {
     protected void postCopyIn(Map alreadyDone) {
         super.postCopyIn(alreadyDone);
         localBase = localBase.copiedVersionFrom(alreadyDone);
+        // patch applied from https://bugs.eclipse.org/bugs/show_bug.cgi?id=401569
+        if(value instanceof Collection) {
+            Collection collection = (Collection) value;
+            Vector newValue = org.eclipse.persistence.internal.helper.NonSynchronizedVector.newInstance(collection.size());
+            for (Object obj : collection) {
+                if(obj instanceof Expression) {
+                    newValue.add(((Expression) obj).copiedVersionFrom(alreadyDone));
+                } else {
+                    newValue.add(obj);
+                }
+            }
+            value = newValue;
+        }
     }
 
     /**
