@@ -35,6 +35,7 @@ import org.eclipse.persistence.internal.sessions.AbstractRecord;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.internal.expressions.ParameterExpression;
 import org.eclipse.persistence.mappings.structures.ObjectRelationalDatabaseField;
+import org.eclipse.persistence.platform.database.PostgreSQLPlatform;
 import org.eclipse.persistence.mappings.structures.ObjectRelationalDataTypeDescriptor;
 
 /**
@@ -1179,6 +1180,9 @@ public abstract class DatabaseCall extends DatasourceCall {
                     if (parameter instanceof Collection) {
                         Collection values = (Collection)parameter;
                         writer.write("(");
+                        if (values.size() > 50 && session.getPlatform() instanceof PostgreSQLPlatform) {
+                            writer.write("values ");
+                        }
                         if ((values.size() > 0) && (values.iterator().next() instanceof List)) {
                             // Support nested lists.
                             int size = values.size();

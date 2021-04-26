@@ -16,6 +16,7 @@ import java.io.*;
 import java.util.*;
 import org.eclipse.persistence.internal.helper.*;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
+import org.eclipse.persistence.platform.database.PostgreSQLPlatform;
 import org.eclipse.persistence.queries.*;
 import org.eclipse.persistence.exceptions.*;
 import org.eclipse.persistence.expressions.*;
@@ -240,7 +241,12 @@ public class ExpressionSQLPrinter {
      */
     public void printList(Collection values) {
         try {
+            boolean valuesClause = (values.size() > 50 && this.getPlatform() instanceof PostgreSQLPlatform);
+            if (valuesClause) {
+                getWriter().write("(values ");
+            }
             getWriter().write("(");
+
             Iterator valuesEnum = values.iterator();
             while (valuesEnum.hasNext()) {
                 Object value = valuesEnum.next();
@@ -250,10 +256,19 @@ public class ExpressionSQLPrinter {
                     session.getPlatform().appendLiteralToCall(getCall(), getWriter(), value);
                 }
                 if (valuesEnum.hasNext()) {
-                    getWriter().write(", ");
+                    if (valuesClause) {
+                        getWriter().write("), (");
+                    } else {
+                        getWriter().write(", ");
+                    }
                 }
             }
             getWriter().write(")");
+
+            if (valuesClause) {
+                getWriter().write(")");
+            } 
+
         } catch (IOException exception) {
             throw ValidationException.fileError(exception);
         }
